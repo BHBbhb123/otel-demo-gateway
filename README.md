@@ -16,6 +16,26 @@ This repository contains the OpenTelemetry Astronomy Shop, a microservice-based
 distributed system intended to illustrate the implementation of OpenTelemetry in
 a near real-world environment.
 
+### 🆕 API Gateway
+
+This demo now includes a **Java-based API Gateway** service that provides:
+
+- **Unified API Entry Point**: Single access point for all microservices
+- **Request Routing**: Smart routing to backend services
+- **Rate Limiting**: Distributed rate limiting using Redis
+- **Authentication**: Session-based authentication mechanism
+- **Observability**: Full OpenTelemetry integration with tracing and metrics
+- **CORS Support**: Cross-origin resource sharing configuration
+
+The API Gateway exposes all services under the `/api/` prefix:
+- `/api/products/**` → Product Catalog Service
+- `/api/cart/**` → Cart Service (requires authentication)
+- `/api/checkout/**` → Checkout Service (requires authentication)
+- `/api/ads/**` → Ad Service
+- And more...
+
+Access the unified gateway at: `http://localhost:8080` (all services including web UI and APIs)
+
 Our goals are threefold:
 
 - Provide a realistic example of a distributed system that can be used to

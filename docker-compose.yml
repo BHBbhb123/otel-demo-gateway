@@ -82,6 +82,78 @@ services:
         condition: service_started
     logging: *logging
 
+  # API Gateway service
+  api-gateway:
+    image: ${IMAGE_NAME:-ghcr.io/open-telemetry/demo}:${IMAGE_VERSION:-latest}-api-gateway
+    container_name: api-gateway
+    build:
+      context: ./
+      dockerfile: ${API_GATEWAY_DOCKERFILE:-./src/api-gateway/Dockerfile}
+      cache_from:
+        - ${IMAGE_NAME:-ghcr.io/open-telemetry/demo}:${IMAGE_VERSION:-latest}-api-gateway
+      args:
+        OTEL_JAVA_AGENT_VERSION: ${OTEL_JAVA_AGENT_VERSION:-2.18.1}
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+    restart: unless-stopped
+    ports:
+      - "${API_GATEWAY_PORT:-8080}:8080"
+    environment:
+      - GATEWAY_PORT=8080
+      - REDIS_HOST=${VALKEY_HOST:-valkey-cart}
+      - REDIS_PORT=${VALKEY_PORT:-6379}
+      - AD_ADDR=http://frontend:8080
+      - CART_ADDR=http://frontend:8080
+      - CHECKOUT_ADDR=http://frontend:8080
+      - CURRENCY_ADDR=http://frontend:8080
+      - EMAIL_ADDR=http://email:${EMAIL_PORT:-6060}
+      - PAYMENT_ADDR=http://frontend:8080
+      - PRODUCT_CATALOG_ADDR=http://frontend:8080
+      - QUOTE_ADDR=http://quote:${QUOTE_PORT:-8090}
+      - RECOMMENDATION_ADDR=http://frontend:8080
+      - SHIPPING_ADDR=http://shipping:${SHIPPING_PORT:-50050}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://${OTEL_COLLECTOR_HOST:-otel-collector}:${OTEL_COLLECTOR_PORT_HTTP:-4318}
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE=${OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE:-cumulative}
+      - OTEL_RESOURCE_ATTRIBUTES=${OTEL_RESOURCE_ATTRIBUTES:-service.namespace=opentelemetry-demo}
+      - OTEL_SERVICE_NAME=api-gateway
+      - OTEL_SERVICE_VERSION=${IMAGE_VERSION:-latest}
+      # Workaround on OSX for https://bugs.openjdk.org/browse/JDK-8345296
+      - _JAVA_OPTIONS
+    depends_on:
+      ad:
+        condition: service_started
+      cart:
+        condition: service_started
+      checkout:
+        condition: service_started
+      currency:
+        condition: service_started
+      email:
+        condition: service_started
+      payment:
+        condition: service_started
+      product-catalog:
+        condition: service_started
+      quote:
+        condition: service_started
+      recommendation:
+        condition: service_started
+      shipping:
+        condition: service_started
+      valkey-cart:
+        condition: service_started
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      start_period: 30s
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging: *logging
+
   # Cart service
   cart:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-cart
@@ -318,54 +390,54 @@ services:
         condition: service_started
     logging: *logging
 
-  # Frontend Proxy (Envoy)
-  frontend-proxy:
-    image: ${IMAGE_NAME}:${DEMO_VERSION}-frontend-proxy
-    container_name: frontend-proxy
-    build:
-      context: ./
-      dockerfile: ${FRONTEND_PROXY_DOCKERFILE}
-    deploy:
-      resources:
-        limits:
-          memory: 65M
-    restart: unless-stopped
-    ports:
-      - "${ENVOY_PORT}:${ENVOY_PORT}"
-      - 10000:10000
-    environment:
-      - FRONTEND_PORT
-      - FRONTEND_HOST
-      - LOCUST_WEB_HOST
-      - LOCUST_WEB_PORT
-      - GRAFANA_PORT
-      - GRAFANA_HOST
-      - JAEGER_PORT
-      - JAEGER_HOST
-      - OTEL_COLLECTOR_HOST
-      - IMAGE_PROVIDER_HOST
-      - IMAGE_PROVIDER_PORT
-      - OTEL_COLLECTOR_PORT_GRPC
-      - OTEL_COLLECTOR_PORT_HTTP
-      - OTEL_RESOURCE_ATTRIBUTES
-      - OTEL_SERVICE_NAME=frontend-proxy
-      - ENVOY_PORT
-      - FLAGD_HOST
-      - FLAGD_PORT
-      - FLAGD_UI_HOST
-      - FLAGD_UI_PORT
-    depends_on:
-      frontend:
-        condition: service_started
-      load-generator:
-        condition: service_started
-      jaeger:
-        condition: service_started
-      grafana:
-        condition: service_started
-      flagd-ui:
-        condition: service_started
-    dns_search: ""
+  # Frontend Proxy (Envoy) - Disabled, using API Gateway instead
+  # frontend-proxy:
+  #   image: ${IMAGE_NAME}:${DEMO_VERSION}-frontend-proxy
+  #   container_name: frontend-proxy
+  #   build:
+  #     context: ./
+  #     dockerfile: ${FRONTEND_PROXY_DOCKERFILE}
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         memory: 65M
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${ENVOY_PORT}:${ENVOY_PORT}"
+  #     - 10000:10000
+  #   environment:
+  #     - FRONTEND_PORT
+  #     - FRONTEND_HOST
+  #     - LOCUST_WEB_HOST
+  #     - LOCUST_WEB_PORT
+  #     - GRAFANA_PORT
+  #     - GRAFANA_HOST
+  #     - JAEGER_PORT
+  #     - JAEGER_HOST
+  #     - OTEL_COLLECTOR_HOST
+  #     - IMAGE_PROVIDER_HOST
+  #     - IMAGE_PROVIDER_PORT
+  #     - OTEL_COLLECTOR_PORT_GRPC
+  #     - OTEL_COLLECTOR_PORT_HTTP
+  #     - OTEL_RESOURCE_ATTRIBUTES
+  #     - OTEL_SERVICE_NAME=frontend-proxy
+  #     - ENVOY_PORT
+  #     - FLAGD_HOST
+  #     - FLAGD_PORT
+  #     - FLAGD_UI_HOST
+  #     - FLAGD_UI_PORT
+  #   depends_on:
+  #     frontend:
+  #       condition: service_started
+  #     load-generator:
+  #       condition: service_started
+  #     jaeger:
+  #       condition: service_started
+  #     grafana:
+  #       condition: service_started
+  #     flagd-ui:
+  #       condition: service_started
+  #   dns_search: ""
 
   # image-provider
   image-provider:
@@ -382,9 +454,9 @@ services:
           memory: 120M
     restart: unless-stopped
     ports:
-      - "${IMAGE_PROVIDER_PORT}"
+      - "${IMAGE_PROVIDER_PORT:-8081}"
     environment:
-      - IMAGE_PROVIDER_PORT
+      - IMAGE_PROVIDER_PORT=${IMAGE_PROVIDER_PORT:-8081}
       - OTEL_COLLECTOR_HOST
       - OTEL_COLLECTOR_PORT_GRPC
       - OTEL_SERVICE_NAME=image-provider
@@ -413,7 +485,7 @@ services:
     environment:
       - LOCUST_WEB_PORT
       - LOCUST_USERS
-      - LOCUST_HOST
+      - LOCUST_HOST=http://api-gateway:8080
       - LOCUST_HEADLESS
       - LOCUST_AUTOSTART
       - LOCUST_BROWSER_TRAFFIC_ENABLED=true
@@ -426,7 +498,7 @@ services:
       - FLAGD_HOST
       - FLAGD_OFREP_PORT
     depends_on:
-      frontend:
+      api-gateway:
         condition: service_started
       flagd:
         condition: service_started
@@ -717,6 +789,18 @@ services:
       - "${VALKEY_PORT}"
     logging: *logging
 
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb
+    restart: unless-stopped
+    ports:
+      - "33333:3333"
+    command: ["mongod", "--port", "3333"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    logging: *logging
+
 
   # ********************
   # Telemetry Components
@@ -790,6 +874,7 @@ services:
       - FRONTEND_PROXY_ADDR
       - IMAGE_PROVIDER_HOST
       - IMAGE_PROVIDER_PORT
+      - IMAGE_PROVIDER_ADDR
       - HOST_FILESYSTEM
       - OTEL_COLLECTOR_HOST
       - OTEL_COLLECTOR_PORT_GRPC

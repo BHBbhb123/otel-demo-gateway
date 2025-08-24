@@ -1,0 +1,64 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Docker Compose file for testing API Gateway independently
+version: '3.8'
+
+networks:
+  test-network:
+    driver: bridge
+
+services:
+  api-gateway-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=test
+      - REDIS_HOST=redis-test
+      - REDIS_PORT=6379
+      - AD_ADDR=http://mockserver:1080
+      - CART_ADDR=http://mockserver:1080
+      - CHECKOUT_ADDR=http://mockserver:1080
+      - CURRENCY_ADDR=http://mockserver:1080
+      - EMAIL_ADDR=http://mockserver:1080
+      - PAYMENT_ADDR=http://mockserver:1080
+      - PRODUCT_CATALOG_ADDR=http://mockserver:1080
+      - QUOTE_ADDR=http://mockserver:1080
+      - RECOMMENDATION_ADDR=http://mockserver:1080
+      - SHIPPING_ADDR=http://mockserver:1080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+    depends_on:
+      - redis-test
+      - mockserver
+    networks:
+      - test-network
+
+  redis-test:
+    image: valkey/valkey:8.1-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - test-network
+
+  mockserver:
+    image: mockserver/mockserver:5.15.0
+    ports:
+      - "1080:1080"
+    environment:
+      - MOCKSERVER_LOG_LEVEL=INFO
+    networks:
+      - test-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.129.1
+    command: ["--config=/etc/otelcol-config.yml"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    volumes:
+      - ./test-config/otelcol-config.yml:/etc/otelcol-config.yml
+    networks:
+      - test-network

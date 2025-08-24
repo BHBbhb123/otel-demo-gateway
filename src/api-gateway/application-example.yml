@@ -1,0 +1,57 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Example configuration file for local development
+# Copy this to application-local.yml and modify as needed
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+
+# Service URLs for local development
+services:
+  ad:
+    url: http://localhost:9555
+  cart:
+    url: http://localhost:7070
+  checkout:
+    url: http://localhost:5050
+  currency:
+    url: http://localhost:7001
+  email:
+    url: http://localhost:6060
+  payment:
+    url: http://localhost:50051
+  product-catalog:
+    url: http://localhost:3550
+  quote:
+    url: http://localhost:8090
+  recommendation:
+    url: http://localhost:9001
+  shipping:
+    url: http://localhost:50050
+
+# OpenTelemetry Configuration for local development
+otel:
+  exporter:
+    otlp:
+      endpoint: http://localhost:4318
+  resource:
+    attributes:
+      service.name: api-gateway
+      service.version: 1.0.0
+
+# Logging Configuration for development
+logging:
+  level:
+    com.opentelemetry.demo.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty: DEBUG
